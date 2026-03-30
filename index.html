@@ -21,7 +21,6 @@
             --card-bg: white;
         }
 
-        /* 深色模式变量 */
         body.dark {
             --c1: #A6569D; --c2: #7B5AA3; --c3: #5F479A; --c4: #BA7AB1;
             --c5: #815C94; --c6: #7D5284; --c7: #7E527F; --c8: #A67EB7;
@@ -83,6 +82,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            min-width: 0; /* 允许flex收缩 */
         }
         .avatar {
             width: 48px;
@@ -90,6 +90,7 @@
             border-radius: 50%;
             background: var(--c9);
             overflow: hidden;
+            flex-shrink: 0;
         }
         .avatar canvas {
             width: 100%;
@@ -97,18 +98,29 @@
         }
         .role-text {
             color: white;
+            flex: 1;
+            min-width: 0;
         }
         .role-name {
             font-weight: bold;
             font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
         }
         .role-desc {
             font-size: 0.7rem;
             opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
         }
         .role-actions {
             display: flex;
             gap: 8px;
+            flex-shrink: 0;
         }
         .role-actions button {
             background: rgba(255,255,255,0.2);
@@ -416,508 +428,67 @@
             from { transform: translateY(100px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-    </style>
-</head>
-<body>
-<div class="app" id="app">
-    <div class="role-header">
-        <div class="role-info">
-            <div class="avatar" id="avatarContainer">
-                <canvas id="avatarCanvas" width="48" height="48"></canvas>
-            </div>
-            <div class="role-text">
-                <div class="role-name" id="roleName">石头</div>
-                <div class="role-desc" id="roleDesc">沉默可靠</div>
-            </div>
-        </div>
-        <div class="role-actions">
-            <button id="switchRoleBtn">切换角色</button>
-            <button id="newRoleBtn">新建角色</button>
-        </div>
-    </div>
 
-    <div class="panel active" id="chatPanel">
-        <div class="chat-messages" id="chatMessages">
-            <div class="message ai">你好，我是《我在。》的AI助手。告诉我你的安排，我会帮你整理并设置闹钟。</div>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" id="chatInput" placeholder="说点什么...">
-            <div class="mic-btn" id="micBtn">🎤</div>
-            <button id="sendBtn">发送</button>
-        </div>
-    </div>
-
-    <div class="panel" id="alarmsPanel">
-        <button id="quickAlarmBtn" class="quick-alarm">+ 快速闹钟</button>
-        <div id="alarmList"></div>
-    </div>
-
-    <div class="panel" id="profilePanel">
-        <div class="settings-group">
-            <div class="settings-title">角色管理</div>
-            <div class="role-list" id="roleList"></div>
-            <div class="edit-role-section" id="editRoleSection">
-                <input type="text" id="editRoleName" placeholder="角色名称">
-                <textarea id="editRoleDesc" rows="2" placeholder="角色描述/语气"></textarea>
-                <div class="file-upload-area">
-                    <input type="file" id="roleFileInput" accept=".txt,.html,.md,text/plain">
-                    <div class="warning">支持TXT、HTML文件（将提取文字）</div>
-                </div>
-                <input type="text" id="apiKeyInput" placeholder="DeepSeek API Key (可选)">
-                <button id="extractBtn" class="btn-secondary">AI分析人设</button>
-                <div id="extractResult" class="warning"></div>
-                <button id="saveRoleBtn" class="btn">保存当前角色</button>
-            </div>
-        </div>
-        <div class="settings-group">
-            <div class="settings-title">界面设置</div>
-            <div class="font-size-control">
-                <span>文字大小</span>
-                <button id="fontSmall">A-</button>
-                <button id="fontMedium">A</button>
-                <button id="fontLarge">A+</button>
-            </div>
-            <div class="theme-control">
-                <span>深色模式</span>
-                <button id="themeLight">浅色</button>
-                <button id="themeDark">深色</button>
-                <button id="themeAuto">跟随系统</button>
-            </div>
-        </div>
-        <div class="settings-group">
-            <div class="settings-title">屏蔽词管理</div>
-            <div class="block-words-control">
-                <input type="text" id="newBlockWord" placeholder="输入屏蔽词" style="flex:1;">
-                <button id="addBlockWord">添加</button>
-            </div>
-            <div id="blockWordList" class="block-word-list"></div>
-            <div class="warning">对话中包含屏蔽词时，AI将忽略该消息。</div>
-        </div>
-        <div class="warning" style="text-align:center; padding:12px;">提示：桌面图标需手动将本网页添加到主屏幕，并截图头像设置为图标。</div>
-    </div>
-
-    <div class="nav">
-        <div class="nav-item active" data-panel="chat">对话</div>
-        <div class="nav-item" data-panel="alarms">闹钟</div>
-        <div class="nav-item" data-panel="profile">我的</div>
-    </div>
-</div><!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>我在。</title>
-    <style>
-        /* 色板 - 用户提供 */
-        :root {
-            --c1: #CE93BF; --c2: #C08EAF; --c3: #BA7AB1; --c4: #A6569D;
-            --c5: #C59AC5; --c6: #C5A4CC; --c7: #BB97C5; --c8: #7B5AA3;
-            --c9: #5F479A; --c10: #DCC7E1; --c11: #BBA1CB; --c12: #A67EB7;
-            --c13: #815C94; --c14: #7D5284; --c15: #7E527F; --c16: #A59ACA;
-            --c17: #8076A3; --c18: #A4ABD6; --c19: #757CBB; --c20: #61649F;
-            --c21: #615EA8;
-            --primary: var(--c4);
-            --secondary: var(--c1);
-            --bg-light: var(--c10);
-            --chat-bg: #F9F0F5;
-            --text-dark: #2c2c2c;
-            --card-bg: white;
-        }
-
-        /* 深色模式变量 */
-        body.dark {
-            --c1: #A6569D; --c2: #7B5AA3; --c3: #5F479A; --c4: #BA7AB1;
-            --c5: #815C94; --c6: #7D5284; --c7: #7E527F; --c8: #A67EB7;
-            --c9: #CE93BF; --c10: #4a3a5c; --c11: #3a2a4c; --c12: #A59ACA;
-            --c13: #BBA1CB; --c14: #DCC7E1; --c15: #C5A4CC; --c16: #8076A3;
-            --c17: #A4ABD6; --c18: #757CBB; --c19: #61649F; --c20: #615EA8;
-            --c21: #CE93BF;
-            --primary: var(--c4);
-            --secondary: var(--c1);
-            --bg-light: #2c2c3a;
-            --chat-bg: #1e1e2a;
-            --text-dark: #e0e0e0;
-            --card-bg: #2a2a38;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, var(--c5), var(--c11));
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 16px;
-            transition: background 0.3s;
-        }
-
-        .app {
-            max-width: 500px;
-            width: 100%;
-            background: var(--card-bg);
-            border-radius: 48px;
-            overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            height: 85vh;
-            max-height: 800px;
-            transition: background 0.3s;
-        }
-
-        .role-header {
-            background: var(--c2);
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .role-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: var(--c9);
-            overflow: hidden;
-        }
-        .avatar canvas {
+        /* 多闹钟选择浮层 */
+        .multi-alarm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-        }
-        .role-text {
-            color: white;
-        }
-        .role-name {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        .role-desc {
-            font-size: 0.7rem;
-            opacity: 0.9;
-        }
-        .role-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .role-actions button {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            border-radius: 30px;
-            padding: 6px 12px;
-            font-size: 0.75rem;
-            cursor: pointer;
-        }
-
-        .nav {
-            display: flex;
-            background: var(--card-bg);
-            border-top: 1px solid var(--c10);
-            padding: 8px 20px;
-            gap: 16px;
-        }
-        .nav-item {
-            flex: 1;
-            text-align: center;
-            padding: 8px 0;
-            font-weight: 500;
-            color: var(--c13);
-            cursor: pointer;
-            border-radius: 30px;
-            transition: all 0.2s;
-        }
-        .nav-item.active {
-            background: var(--c1);
-            color: white;
-        }
-
-        .panel {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 20px;
-            display: none;
-            flex-direction: column;
-        }
-        .panel.active {
-            display: flex;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .message {
-            max-width: 85%;
-            padding: 10px 14px;
-            border-radius: 24px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            color: var(--text-dark);
-        }
-        .message.user {
-            align-self: flex-end;
-            background: var(--c1);
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-        .message.ai {
-            align-self: flex-start;
-            background: var(--c10);
-            color: var(--text-dark);
-            border-bottom-left-radius: 4px;
-        }
-        .chat-input-area {
-            display: flex;
-            gap: 8px;
-            background: var(--card-bg);
-            border-top: 1px solid var(--c10);
-            padding-top: 8px;
-        }
-        .chat-input-area input {
-            flex: 1;
-            border: 1px solid var(--c10);
-            border-radius: 30px;
-            padding: 10px 16px;
-            font-size: 0.95rem;
-            outline: none;
-            background: var(--card-bg);
-            color: var(--text-dark);
-        }
-        .chat-input-area button {
-            background: var(--c4);
-            border: none;
-            color: white;
-            border-radius: 30px;
-            padding: 0 20px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .mic-btn {
-            background: var(--c1);
-            border-radius: 30px;
-            width: 44px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            z-index: 3000;
         }
-
-        .alarm-item {
+        .multi-alarm-card {
             background: var(--card-bg);
-            border-radius: 24px;
-            padding: 12px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            border: 1px solid var(--c10);
-        }
-        .alarm-info {
-            flex: 1;
-        }
-        .alarm-name {
-            font-weight: bold;
-            color: var(--c9);
-        }
-        .alarm-time {
-            font-size: 0.8rem;
-            color: var(--c14);
-        }
-        .alarm-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .alarm-actions button {
-            background: var(--c1);
-            border: none;
-            color: white;
-            border-radius: 30px;
-            padding: 4px 10px;
-            cursor: pointer;
-        }
-        .quick-alarm {
-            background: var(--c1);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            padding: 8px 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: bold;
-        }
-
-        .settings-group {
-            margin-bottom: 24px;
-        }
-        .settings-title {
-            font-weight: bold;
-            color: var(--c9);
-            margin-bottom: 12px;
-            border-left: 4px solid var(--c4);
-            padding-left: 12px;
-        }
-        .role-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .role-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--c10);
-            border-radius: 40px;
-            padding: 8px 16px;
-        }
-        .role-item span {
-            font-weight: 500;
-            color: var(--c9);
-        }
-        .role-item button {
-            background: var(--c4);
-            border: none;
-            color: white;
-            border-radius: 30px;
-            padding: 4px 12px;
-            cursor: pointer;
-        }
-        .edit-role-section {
-            margin-top: 20px;
-            background: var(--bg-light);
             border-radius: 32px;
-            padding: 16px;
-        }
-        .edit-role-section input, .edit-role-section textarea {
-            width: 100%;
-            margin-bottom: 12px;
-            padding: 10px;
-            border-radius: 28px;
-            border: 1px solid var(--c10);
-            background: var(--card-bg);
+            max-width: 300px;
+            width: 80%;
+            padding: 20px;
+            text-align: center;
             color: var(--text-dark);
         }
-        .file-upload-area {
+        .multi-alarm-card h3 {
+            margin-bottom: 16px;
+            color: var(--c4);
+        }
+        .multi-alarm-list {
+            text-align: left;
             margin: 12px 0;
+            max-height: 300px;
+            overflow-y: auto;
         }
-        .btn {
-            background: var(--c4);
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 40px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-        }
-        .btn-secondary {
-            background: var(--c1);
-        }
-        .font-size-control, .theme-control, .block-words-control {
+        .multi-alarm-item {
+            margin: 8px 0;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-        .font-size-control button, .theme-control button, .block-words-control button {
-            background: var(--c1);
-            border: none;
-            padding: 6px 12px;
-            border-radius: 30px;
-            cursor: pointer;
-            color: white;
-        }
-        .warning {
-            color: var(--c13);
-            font-size: 0.7rem;
-            margin-top: 8px;
-        }
-        .block-word-list {
-            margin-top: 8px;
-            display: flex;
-            flex-wrap: wrap;
             gap: 8px;
         }
-        .block-word-tag {
-            background: var(--c1);
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            color: white;
+        .multi-alarm-item input {
+            width: 20px;
+            height: 20px;
         }
-        /* 后台提醒浮层 */
-        .background-toast {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            padding: 16px 20px;
-            z-index: 2000;
+        .multi-alarm-buttons {
             display: flex;
-            flex-direction: column;
             gap: 12px;
-            animation: slideUp 0.3s ease;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-top: 16px;
         }
-        .background-toast p {
-            color: white;
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-        .background-toast .toast-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            align-items: center;
-        }
-        .background-toast .checkbox-label {
-            color: #ccc;
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-        .background-toast .checkbox-label input {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-        .background-toast button {
+        .multi-alarm-buttons button {
+            flex: 1;
             background: var(--c4);
             border: none;
             color: white;
-            padding: 8px 16px;
+            padding: 8px;
             border-radius: 30px;
             cursor: pointer;
-            font-size: 0.8rem;
         }
-        @keyframes slideUp {
-            from { transform: translateY(100px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        .multi-alarm-buttons .cancel-btn {
+            background: var(--c10);
+            color: var(--c9);
         }
     </style>
 </head>
@@ -1005,21 +576,19 @@
         <div class="nav-item" data-panel="profile">我的</div>
     </div>
 </div>
+
 <script>
     // ======================== 全局数据 ========================
     let roles = [];
     let currentRoleId = null;
     let notificationPermission = false;
-    let pendingAlarm = null;
     let currentFontSize = 'medium';
     let currentTheme = 'auto';
     let blockWords = [];
 
-    // 后台提醒相关
     let dontRemindBackground = localStorage.getItem('dontRemindBackground') === 'true';
     let backgroundToastElement = null;
 
-    // DOM 元素
     const avatarCanvas = document.getElementById('avatarCanvas');
     const roleNameSpan = document.getElementById('roleName');
     const roleDescSpan = document.getElementById('roleDesc');
@@ -1045,7 +614,6 @@
 
     const colorPalette = ['#CE93BF','#C08EAF','#BA7AB1','#A6569D','#C59AC5','#C5A4CC','#BB97C5','#7B5AA3','#5F479A','#DCC7E1','#BBA1CB','#A67EB7','#815C94','#7D5284','#7E527F','#A59ACA','#8076A3','#A4ABD6','#757CBB','#61649F','#615EA8'];
 
-    // ========== 辅助函数 ==========
     function saveToLocalStorage() {
         const data = {
             roles: roles.map(r => ({
@@ -1070,7 +638,6 @@
         } catch(e) { return false; }
     }
 
-    // 头像绘制
     function drawStoneAvatar(ctx, size) {
         const w = size, h = size;
         ctx.clearRect(0, 0, w, h);
@@ -1195,8 +762,9 @@
     function switchRole(roleId) {
         currentRoleId = roleId;
         updateCurrentRoleUI();
-        chatMessagesDiv.innerHTML = `<div class="message ai">已切换到角色“${roles.find(r=>r.id===roleId).name}”。继续聊聊你的安排吧。</div>`;
-        pendingAlarm = null;
+        const role = roles.find(r => r.id === roleId);
+        const switchMsg = `已切换到角色“${role.name}”。${role.desc.split('，')[0] || '我会用这个风格和你说话。'}`;
+        chatMessagesDiv.innerHTML = `<div class="message ai">${switchMsg}</div>`;
         saveToLocalStorage();
     }
 
@@ -1301,53 +869,85 @@
         });
     }
 
-    function parseScheduleAdvanced(text) {
+    // 时间解析核心函数：返回所有匹配的 {date, text} 数组
+    function parseAllSchedules(text) {
         const now = new Date();
-        let match = text.match(/(\d+)\s*分钟后/);
-        if (match) {
-            const minutes = parseInt(match[1]);
-            const target = new Date(now.getTime() + minutes * 60000);
-            return target;
-        }
-        match = text.match(/(\d+)\s*小时后/);
-        if (match) {
-            const hours = parseInt(match[1]);
-            const target = new Date(now.getTime() + hours * 3600000);
-            return target;
-        }
-        match = text.match(/下个?(\S+)日?/);
-        const weekdays = ['周一','周二','周三','周四','周五','周六','周日','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
-        if (match) {
-            const dayStr = match[1];
-            let targetWeekday = -1;
-            for (let i=0; i<weekdays.length; i++) {
-                if (dayStr.includes(weekdays[i])) {
-                    targetWeekday = i % 7;
-                    break;
+        const results = [];
+        // 使用正则逐个匹配，为了避免重叠，我们简单遍历常见模式，每次匹配后移除已匹配部分（简化版）
+        let remaining = text;
+        let lastIndex = 0;
+        const patterns = [
+            { regex: /(\d+)\s*分钟后/, type: 'relative', unit: 'minute' },
+            { regex: /(\d+)\s*小时后/, type: 'relative', unit: 'hour' },
+            { regex: /(明天|后天|今天)(上午|下午|晚上)?(\d{1,2})(点|时)(半)?/, type: 'absolute' },
+            { regex: /(\d{1,2})月(\d{1,2})日(上午|下午|晚上)?(\d{1,2})(点|时)(半)?/, type: 'absolute' },
+            { regex: /(\d{1,2}):(\d{2})/, type: 'absolute' },
+            { regex: /(\d{1,2})点(\d{2})分/, type: 'absolute' },
+            { regex: /下个?(\S+)日?/, type: 'weekday' },
+            { regex: /每(\d+)\s*天/, type: 'interval' },
+            { regex: /每周(\S+)/, type: 'weekly' }
+        ];
+
+        // 简化：遍历文本，提取所有可能的日期（这里使用全局匹配，但需要小心重复）
+        // 为简单，这里先实现一个能处理多个的版本，不依赖复杂状态，直接扫描所有模式
+        for (let pattern of patterns) {
+            let match;
+            const regex = new RegExp(pattern.regex.source, 'g');
+            while ((match = regex.exec(remaining)) !== null) {
+                // 避免重复添加同一个匹配（后续可优化去重）
+                let targetDate = null;
+                if (pattern.type === 'relative') {
+                    const num = parseInt(match[1]);
+                    if (pattern.unit === 'minute') targetDate = new Date(now.getTime() + num * 60000);
+                    else if (pattern.unit === 'hour') targetDate = new Date(now.getTime() + num * 3600000);
+                } else if (pattern.type === 'absolute') {
+                    // 调用原来的解析逻辑，这里简单复用之前的函数（但需要单独实现）
+                    // 由于原 parseScheduleAdvanced 只返回第一个，我们写一个内部转换函数
+                    targetDate = parseSingleSchedule(match[0], now);
+                } else if (pattern.type === 'weekday') {
+                    // 解析下周二等
+                    const dayStr = match[1];
+                    const weekdays = ['周一','周二','周三','周四','周五','周六','周日','星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
+                    let targetWeekday = -1;
+                    for (let i=0; i<weekdays.length; i++) {
+                        if (dayStr.includes(weekdays[i])) {
+                            targetWeekday = i % 7;
+                            break;
+                        }
+                    }
+                    if (targetWeekday !== -1) {
+                        let currentWeekday = now.getDay();
+                        let daysToAdd = (targetWeekday + 7 - currentWeekday) % 7;
+                        if (daysToAdd === 0) daysToAdd = 7;
+                        targetDate = new Date(now);
+                        targetDate.setDate(now.getDate() + daysToAdd);
+                        targetDate.setHours(0,0,0,0);
+                    }
+                } else if (pattern.type === 'interval') {
+                    // 暂不返回具体日期，因为周期闹钟需要额外处理，这里先忽略
+                    continue;
+                } else if (pattern.type === 'weekly') {
+                    continue;
+                }
+                if (targetDate && targetDate > now) {
+                    results.push({ date: targetDate, text: match[0] });
                 }
             }
-            if (targetWeekday !== -1) {
-                let currentWeekday = now.getDay();
-                let daysToAdd = (targetWeekday + 7 - currentWeekday) % 7;
-                if (daysToAdd === 0) daysToAdd = 7;
-                const target = new Date(now);
-                target.setDate(now.getDate() + daysToAdd);
-                return target;
+        }
+        // 去重（基于时间戳）
+        const unique = [];
+        const timestamps = new Set();
+        for (let r of results) {
+            if (!timestamps.has(r.date.getTime())) {
+                timestamps.add(r.date.getTime());
+                unique.push(r);
             }
         }
-        match = text.match(/每(\d+)\s*天/);
-        if (match) {
-            return { type: 'interval', value: parseInt(match[1]), unit: 'day' };
-        }
-        match = text.match(/每周(\S+)/);
-        if (match) {
-            let weekdayStr = match[1];
-            let weekdayMap = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':0,'天':0};
-            let weekday = weekdayMap[weekdayStr];
-            if (weekday !== undefined) {
-                return { type: 'weekly', weekday: weekday };
-            }
-        }
+        return unique;
+    }
+
+    function parseSingleSchedule(matchedText, now) {
+        // 复用原解析逻辑，但只针对单一文本
         const patterns = [
             /(明天|后天|今天)(上午|下午|晚上)?(\d{1,2})(点|时)(半)?/,
             /(\d{1,2})月(\d{1,2})日(上午|下午|晚上)?(\d{1,2})(点|时)(半)?/,
@@ -1355,7 +955,7 @@
             /(\d{1,2})点(\d{2})分/
         ];
         for (let pattern of patterns) {
-            const match = text.match(pattern);
+            const match = matchedText.match(pattern);
             if (match) {
                 let year = now.getFullYear();
                 let month = now.getMonth();
@@ -1392,9 +992,30 @@
                 return targetDate;
             }
         }
+        // 相对时间已经在外面处理，这里不再重复
         return null;
     }
-        function sendNotification(role, alarmName) {
+
+    // 原简单解析（保留用于单个时间）
+    function parseScheduleAdvanced(text) {
+        const now = new Date();
+        let match = text.match(/(\d+)\s*分钟后/);
+        if (match) {
+            const minutes = parseInt(match[1]);
+            return new Date(now.getTime() + minutes * 60000);
+        }
+        match = text.match(/(\d+)\s*小时后/);
+        if (match) {
+            const hours = parseInt(match[1]);
+            return new Date(now.getTime() + hours * 3600000);
+        }
+        // 其他模式复用原函数（但这里简单调用 parseSingleSchedule 的第一个匹配）
+        const all = parseAllSchedules(text);
+        if (all.length > 0) return all[0].date;
+        return null;
+    }
+
+    function sendNotification(role, alarmName) {
         if (!notificationPermission) return;
         const message = `${role.name}提醒：${alarmName} 时间到啦！ ${role.desc.split('，')[0]}`;
         new Notification("《我在。》", { body: message, icon: role.avatarDataURL });
@@ -1429,53 +1050,107 @@
         return false;
     }
 
+    // 展示多闹钟选择浮层
+    function showMultiAlarmChooser(alarmsList, userText) {
+        const overlay = document.createElement('div');
+        overlay.className = 'multi-alarm-overlay';
+        let itemsHtml = '';
+        alarmsList.forEach((item, idx) => {
+            const timeStr = `${item.date.getMonth()+1}/${item.date.getDate()} ${item.date.getHours().toString().padStart(2,'0')}:${item.date.getMinutes().toString().padStart(2,'0')}`;
+            itemsHtml += `
+                <div class="multi-alarm-item">
+                    <input type="checkbox" class="alarm-checkbox" data-idx="${idx}" checked>
+                    <span>${escapeHtml(item.text)} (${timeStr})</span>
+                </div>
+            `;
+        });
+        overlay.innerHTML = `
+            <div class="multi-alarm-card">
+                <h3>检测到多个时间安排</h3>
+                <div class="multi-alarm-list">
+                    ${itemsHtml}
+                </div>
+                <div class="multi-alarm-buttons">
+                    <button class="cancel-btn">取消</button>
+                    <button class="confirm-btn">创建选中闹钟</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const confirmBtn = overlay.querySelector('.confirm-btn');
+        const cancelBtn = overlay.querySelector('.cancel-btn');
+
+        confirmBtn.addEventListener('click', () => {
+            const checkboxes = overlay.querySelectorAll('.alarm-checkbox');
+            const role = roles.find(r => r.id === currentRoleId);
+            if (role) {
+                checkboxes.forEach((cb, idx) => {
+                    if (cb.checked) {
+                        const item = alarmsList[idx];
+                        const timeStr = `${item.date.getMonth()+1}/${item.date.getDate()} ${item.date.getHours().toString().padStart(2,'0')}:${item.date.getMinutes().toString().padStart(2,'0')}`;
+                        const alarmName = item.text.length>20 ? item.text.slice(0,20)+'...' : item.text;
+                        addAlarm(role, alarmName, timeStr, item.date.getTime());
+                    }
+                });
+                addChatMessage(`已创建 ${checkboxes.length} 个闹钟。`, false);
+            }
+            overlay.remove();
+        });
+        cancelBtn.addEventListener('click', () => {
+            overlay.remove();
+            addChatMessage(`已取消创建闹钟。`, false);
+        });
+    }
+
     function handleUserMessage(text) {
         if (containsBlockWord(text)) {
             addChatMessage("消息包含屏蔽词，已忽略。", false);
             return;
         }
         addChatMessage(text, true);
-        const parsed = parseScheduleAdvanced(text);
-        let targetDate = null;
-        let repeatInfo = null;
-        if (parsed && parsed.type) {
-            repeatInfo = parsed;
-            if (parsed.type === 'interval') {
-                targetDate = new Date(Date.now() + parsed.value * 24 * 3600000);
-            } else if (parsed.type === 'weekly') {
-                let now = new Date();
-                let currentWeekday = now.getDay();
-                let daysToAdd = (parsed.weekday - currentWeekday + 7) % 7;
-                if (daysToAdd === 0) daysToAdd = 7;
-                targetDate = new Date(now.getTime() + daysToAdd * 86400000);
-            }
-        } else if (parsed instanceof Date) {
-            targetDate = parsed;
-        }
-        if (targetDate && targetDate > new Date()) {
-            const hours = targetDate.getHours().toString().padStart(2,'0');
-            const minutes = targetDate.getMinutes().toString().padStart(2,'0');
-            const timeStr = `${targetDate.getMonth()+1}/${targetDate.getDate()} ${hours}:${minutes}`;
-            const alarmName = text.length>20 ? text.slice(0,20)+'...' : text;
-            pendingAlarm = { name: alarmName, targetDate, timeStr, repeatInfo };
-            addChatMessage(`检测到时间安排：${alarmName} 于 ${timeStr}。是否需要创建闹钟？(回复“是”或“否”)`, false);
-        } else {
-            addChatMessage(`收到：“${text}”。如果有时间安排，我会帮你设置闹钟。`, false);
-        }
-    }
-
-    function confirmAlarm(confirm) {
-        if (!pendingAlarm) return;
-        if (confirm) {
+        const parsedTimes = parseAllSchedules(text);
+        if (parsedTimes.length === 0) {
+            // 没有时间安排，普通回复
             const role = roles.find(r => r.id === currentRoleId);
-            if (role) {
-                addAlarm(role, pendingAlarm.name, pendingAlarm.timeStr, pendingAlarm.targetDate.getTime());
-                addChatMessage(`闹钟已创建：${pendingAlarm.name} 在 ${pendingAlarm.timeStr}`, false);
+            let reply = `收到：“${text}”。如果有时间安排，我会帮你设置闹钟。`;
+            if (role && role.desc) {
+                const desc = role.desc;
+                if (desc.includes('温柔') || desc.includes('耐心')) {
+                    reply = `嗯，我记下啦～ “${text}”。如果需要设置闹钟，随时告诉我哦。`;
+                } else if (desc.includes('幽默') || desc.includes('搞笑')) {
+                    reply = `哈哈，收到：“${text}”！要是有时间安排，我帮你记着，别忘啦～`;
+                } else if (desc.includes('严厉') || desc.includes('严格')) {
+                    reply = `收到：“${text}”。如果有重要安排，现在就说，不要拖。`;
+                } else if (desc.includes('鼓励') || desc.includes('加油')) {
+                    reply = `收到啦：“${text}”！加油哦，如果有时间安排，我帮你提醒～`;
+                } else {
+                    reply = `收到：“${text}”。如果有时间安排，我会帮你设置闹钟。`;
+                }
+            }
+            addChatMessage(reply, false);
+            return;
+        }
+
+        if (parsedTimes.length === 1) {
+            // 单个时间，使用原 confirm 弹窗
+            const item = parsedTimes[0];
+            const timeStr = `${item.date.getMonth()+1}/${item.date.getDate()} ${item.date.getHours().toString().padStart(2,'0')}:${item.date.getMinutes().toString().padStart(2,'0')}`;
+            const alarmName = item.text.length>20 ? item.text.slice(0,20)+'...' : item.text;
+            const confirmCreate = confirm(`检测到时间安排：\n“${alarmName}”\n时间：${timeStr}\n\n是否创建闹钟？`);
+            if (confirmCreate) {
+                const role = roles.find(r => r.id === currentRoleId);
+                if (role) {
+                    addAlarm(role, alarmName, timeStr, item.date.getTime());
+                    addChatMessage(`闹钟已创建：${alarmName} 在 ${timeStr}`, false);
+                }
+            } else {
+                addChatMessage(`好的，已取消这个闹钟。`, false);
             }
         } else {
-            addChatMessage(`好的，已取消这个闹钟。`, false);
+            // 多个时间，弹出多选浮层
+            showMultiAlarmChooser(parsedTimes, text);
         }
-        pendingAlarm = null;
     }
 
     function addChatMessage(msg, isUser) {
@@ -1538,11 +1213,10 @@
         micBtn.style.display = 'none';
     }
 
-    // ========== 后台退出提醒功能 ==========
+    // 后台提醒
     function showBackgroundWarning() {
         if (dontRemindBackground) return;
         if (backgroundToastElement) return;
-
         backgroundToastElement = document.createElement('div');
         backgroundToastElement.className = 'background-toast';
         backgroundToastElement.innerHTML = `
@@ -1555,10 +1229,8 @@
             </div>
         `;
         document.body.appendChild(backgroundToastElement);
-
         const closeBtn = document.getElementById('closeToastBtn');
         const checkbox = document.getElementById('dontRemindCheckbox');
-
         const closeToast = () => {
             if (backgroundToastElement) {
                 backgroundToastElement.remove();
@@ -1569,22 +1241,13 @@
                 localStorage.setItem('dontRemindBackground', 'true');
             }
         };
-
         closeBtn.addEventListener('click', closeToast);
         backgroundToastElement.addEventListener('click', (e) => {
             if (e.target === backgroundToastElement) closeToast();
         });
     }
-
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            showBackgroundWarning();
-        }
-    });
-
-    window.addEventListener('blur', () => {
-        showBackgroundWarning();
-    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) showBackgroundWarning(); });
+    window.addEventListener('blur', () => { showBackgroundWarning(); });
 
     // 深色模式
     function applyTheme() {
@@ -1697,13 +1360,7 @@
         const text = chatInput.value.trim();
         if (!text) return;
         chatInput.value = '';
-        if (pendingAlarm && (text === '是' || text === 'yes' || text === '确认' || text === '好')) {
-            confirmAlarm(true);
-        } else if (pendingAlarm && (text === '否' || text === '不' || text === '取消')) {
-            confirmAlarm(false);
-        } else {
-            handleUserMessage(text);
-        }
+        handleUserMessage(text);
     });
     chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendBtn.click(); });
     quickAlarmBtn.addEventListener('click', showQuickAlarmDialog);
